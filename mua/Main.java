@@ -29,7 +29,7 @@ public class Main {
         }
     };
 
-    private NameSpace namespace = new NameSpace();
+    // private NameSpace namespace = new NameSpace();
 
     private static void read(Scanner in) {
         Stack<Operation> operations = new Stack<Operation>();
@@ -48,8 +48,7 @@ public class Main {
             if (Main.ops.contains(element))
                 operations.push(Operation.valueOf(element));
             else {
-                // values.push(new Value(element));
-                
+                values.push(new Value(element));
             }
         }
 
