@@ -32,4 +32,8 @@ public class Value {
     public String getElement() {
         return element;
     }
+
+    public void setElement(String e) {
+        element = e;
+    }
 }

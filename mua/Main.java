@@ -35,7 +35,9 @@ public class Main {
         Stack<Operation> operations = new Stack<Operation>();
         Stack<Value> values = new Stack<Value>();
 
+        int j = 0;
         while (true) {
+            System.out.println("processing the " + j++ + "th word");
             int expectedValues = 0;
             Iterator<Operation> it = operations.iterator();
             while (it.hasNext())
@@ -45,9 +47,13 @@ public class Main {
                 break;
 
             String element = in.next();
-            if (Main.ops.contains(element))
+
+            System.out.println(element);
+            if (Main.ops.contains(element)) {
+                System.out.println("into ops:" + element);
                 operations.push(Operation.valueOf(element));
-            else {
+            } else {
+                System.out.println("into values:" + element);
                 values.push(new Value(element));
             }
         }
