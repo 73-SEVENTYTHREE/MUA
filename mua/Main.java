@@ -7,7 +7,6 @@ import java.util.ArrayList;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Welcome to MUA");
         Scanner in = new Scanner(System.in);
         while (in.hasNext()) {
             read(in);
@@ -29,42 +28,49 @@ public class Main {
         }
     };
 
-    // private NameSpace namespace = new NameSpace();
-
     private static void read(Scanner in) {
         Stack<Operation> operations = new Stack<Operation>();
-        Stack<Value> values = new Stack<Value>();
+
+        Stack<Stack<String>> values = new Stack<>();
 
         int j = 0;
         while (true) {
-            System.out.println("processing the " + j++ + "th word");
-            int expectedValues = 0;
-            Iterator<Operation> it = operations.iterator();
-            while (it.hasNext())
-                expectedValues += it.next().getOpNum();
-
-            if (operations.size() + values.size() - expectedValues == 1)
-                break;
-
             String element = in.next();
 
-            System.out.println(element);
-            if (Main.ops.contains(element)) {
-                System.out.println("into ops:" + element);
-                operations.push(Operation.valueOf(element));
+            if (element.startsWith(":")) {
+                operations.push(Operation.colon);
+                values.push(new Stack<>());
+                values.peek().push(element.substring(1));
             } else {
-                System.out.println("into values:" + element);
-                values.push(new Value(element));
+                if (Main.ops.contains(element)) {
+                    operations.push(Operation.valueOf(element));
+                    values.push(new Stack<String>());
+                } else {
+                    values.peek().push(element);
+                }
             }
-        }
 
-        while (!operations.empty()) {
-            Operation op = operations.pop();
-            String[] args = new String[3];
-            for (int i = 0; i < op.getOpNum(); ++i) {
-                args[i] = values.pop().getElement();
+            while (!operations.empty()) {
+                if (operations.peek().getOpNum() == values.peek().size()) {
+                    String[] args = new String[operations.peek().getOpNum()];
+                    for (int i = 0; i < operations.peek().getOpNum(); ++i) {
+                        args[i] = values.peek().pop();
+                    }
+                    values.pop();
+
+                    String retValue = operations.peek().calc(args);
+                    operations.pop();
+
+                    if (!values.empty()) {
+                        values.peek().push(retValue);
+                    }
+                } else {
+                    break;
+                }
             }
-            values.push(new Value(op.calc(args)));
+
+            if (operations.size() == 0 && values.size() == 0)
+                break;
         }
     }
 }

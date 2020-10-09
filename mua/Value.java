@@ -14,8 +14,11 @@ public class Value {
     }
 
     public String getWord() {
-        if (element.matches("^\"")) {
-            return NameSpace.variables.get(element.substring(1)).getElement();
+        if (element.matches("^\".*")) {
+            if (NameSpace.variables.containsKey(element.substring(1))) {
+                return NameSpace.variables.get(element.substring(1)).getElement();
+            } else
+                return element.substring(1);
         } else {
             return element;
         }
