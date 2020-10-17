@@ -283,6 +283,85 @@ public enum Operation {
             return String.valueOf(b1 || b2);
         }
     },
+    isnumber {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public String calc(String[] args) {
+            // isnumber v
+            String v = (new Value(args[0])).getWord();
+            try {
+                double d = Double.parseDouble(v);
+                return String.valueOf(true);
+            } catch (NumberFormatException e) {
+                return String.valueOf(false);
+            }
+        }
+    },
+    isbool {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public String calc(String[] args) {
+            // isbool v
+            String v = (new Value(args[0])).getWord();
+            return String.valueOf(v.equals("true") || v.equals("false"));
+        }
+    },
+    isword {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public String calc(String[] args) {
+            // isword v
+            if (NameSpace.variables.get(args[0].substring(1)).type != Value.Type.list) {
+                return String.valueOf(true);
+            } else {
+                return String.valueOf(false);
+            }
+        }
+    },
+    islist {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public String calc(String[] args) {
+            // islist v
+            if (NameSpace.variables.get(args[0].substring(1)).type == Value.Type.list) {
+                return String.valueOf(true);
+            } else {
+                return String.valueOf(false);
+            }
+        }
+    },
+    isempty {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public String calc(String[] args) {
+            // isempty v
+            if (NameSpace.variables.get(args[0].substring(1)).listElement.isEmpty()) {
+                return String.valueOf(true);
+            } else {
+                return String.valueOf(false);
+            }
+        }
+    },
     run {
 
     };
@@ -290,12 +369,7 @@ public enum Operation {
     private static Double[] getTwoNum(String[] args) {
         Double[] d = new Double[2];
         for (int i = 0; i < 2; ++i) {
-            if (args[i].startsWith("\"")) {
-                // d[i] = NameSpace.variables.get(args[i].substring(1)).getNumber();
-                d[i] = Double.parseDouble(args[i].substring(1));
-            } else {
-                d[i] = Double.parseDouble(args[i]);
-            }
+            d[i] = (new Value(args[i])).getNumber();
         }
         return d;
     }
