@@ -166,8 +166,8 @@ public enum Operation {
 
         public String calc(String[] args) {
             // erase v
-            String ret = NameSpace.variables.get(args[0]).getElement();
-            NameSpace.variables.get(args[0]).setElement("");
+            String ret = NameSpace.variables.get(args[0].substring(1)).getElement();
+            NameSpace.variables.remove(args[0].substring(1));
             return ret;
         }
     },
@@ -180,7 +180,7 @@ public enum Operation {
 
         public String calc(String[] args) {
             // isname v
-            return String.valueOf(NameSpace.variables.containsKey(args[0]));
+            return String.valueOf(NameSpace.variables.containsKey((args[0]).substring(1)));
         }
     },
     eq {
@@ -224,11 +224,11 @@ public enum Operation {
             try {
                 double d1 = Double.parseDouble(v1);
                 double d2 = Double.parseDouble(v2);
-                return String.valueOf(d1 > d2);
+                return String.valueOf(d1 < d2);
             } catch (NumberFormatException e) {
 
             }
-            return String.valueOf(v1.compareTo(v2) > 0);
+            return String.valueOf(v1.compareTo(v2) < 0);
         }
     },
     lt {
@@ -248,11 +248,11 @@ public enum Operation {
             try {
                 double d1 = Double.parseDouble(v1);
                 double d2 = Double.parseDouble(v2);
-                return String.valueOf(d1 < d2);
+                return String.valueOf(d1 > d2);
             } catch (NumberFormatException e) {
 
             }
-            return String.valueOf(v1.compareTo(v2) < 0);
+            return String.valueOf(v1.compareTo(v2) > 0);
         }
     },
     and {
@@ -283,6 +283,19 @@ public enum Operation {
             return String.valueOf(b1 || b2);
         }
     },
+    not {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public String calc(String[] args) {
+            // not v
+            boolean b = Boolean.valueOf((new Value(args[0])).getWord());
+            return String.valueOf(!b);
+        }
+    },
     isnumber {
         public int operandNum = 1;
 
@@ -294,7 +307,7 @@ public enum Operation {
             // isnumber v
             String v = (new Value(args[0])).getWord();
             try {
-                double d = Double.parseDouble(v);
+                Double.parseDouble(v);
                 return String.valueOf(true);
             } catch (NumberFormatException e) {
                 return String.valueOf(false);

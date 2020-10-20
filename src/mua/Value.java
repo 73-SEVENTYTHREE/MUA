@@ -18,7 +18,7 @@ public class Value {
     }
 
     public String getWord() {
-        if (element.startsWith("(")) {
+        if (element.startsWith("\"")) {
             if (NameSpace.variables.containsKey(element.substring(1))) {
                 return NameSpace.variables.get(element.substring(1)).getElement();
             } else

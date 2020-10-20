@@ -15,7 +15,7 @@ function itdir(){
 #echo "cleaning"
 itdir "."
 #echo "compiling"
-javac -cp .:src Test.java
+javac -cp src Test.java
 #echo "executing"
 java -cp .:src Test $1
 #cat $1
