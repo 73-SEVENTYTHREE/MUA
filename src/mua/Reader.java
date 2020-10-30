@@ -26,17 +26,12 @@ public class Reader {
         }
     };
 
-    Reader() {
-        this.in = new Scanner(System.in);
+    Reader(Scanner i) {
+        this.in = i;
         this.returnLayer = 0;
     }
 
-    public static void main(String[] args) {
-        Reader reader = new Reader();
-        reader.readAll();
-    }
-
-    private void readAll() {
+    public void readAll() {
         while (in.hasNext()) {
             read();
         }
@@ -152,6 +147,6 @@ public class Reader {
     }
 
     private void readExpr() {
-        
+
     }
 }
