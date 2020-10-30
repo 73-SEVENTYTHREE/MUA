@@ -54,7 +54,7 @@ public class Reader {
             if (element.startsWith("[")) {
                 values.peek().push(readList(element));
             } else if (element.startsWith("(")) {
-                readExpr();
+                readExpr(element);
             } else if (element.startsWith(":")) {
                 operations.push(Operation.colon);
                 values.push(new Stack<>());
@@ -146,7 +146,43 @@ public class Reader {
         return v;
     }
 
-    private void readExpr() {
+    private void readExpr(String first) {
+        String exp = first;
+        while (!exp.endsWith(")")) {
+            exp = exp + in.next();
+        }
 
+        // add space
+        for (int i = 0; i < exp.length(); ++i) {
+            char c = exp.charAt(i);
+            if (priority.containsKey(c)) {
+                StringBuilder sb = new StringBuilder(exp);
+                sb.insert(i, " ");
+                sb.insert(i + 2, " ");
+                i += 2;
+                exp = sb.toString();
+            }
+        }
+
+        // 第一个是空，后面每个都分割好了
+        String[] words = exp.split("\\s+");
+
+        Stack<Character> op = new Stack<>();
+        Stack<Double> num = new Stack<>();
+
+        for (int i = 1; i < words.length; ++i) {
+            String s = words[i];
+            try{
+                Double d = Double.parseDouble(s);
+                num.push(d);
+            } catch (NumberFormatException e) {
+                if (NameSpace.variables.containsKey(s)) {
+
+                }
+                else {
+                    
+                }
+            }
+        }
     }
 }
