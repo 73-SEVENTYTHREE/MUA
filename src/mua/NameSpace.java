@@ -8,7 +8,11 @@ import java.util.HashSet;
 public class NameSpace {
     public static Map<String, Value> variables = new HashMap<String, Value>();
 
-    public static Set<String> ops = new HashSet<>() {
+    public static enum ReadMode {
+        inputScanner, stringArray, runList
+    };
+
+    public static Set<String> ops = new HashSet<String>() {
         private static final long serialVersionUID = 1L;
         {
             add("make");
@@ -30,7 +34,7 @@ public class NameSpace {
             add("and");
             add("or");
             add("not");
-            add("if");
+            add("IF");
             add("isnumber");
             add("isword");
             add("islist");

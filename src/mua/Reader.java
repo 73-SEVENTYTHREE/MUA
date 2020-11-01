@@ -1,10 +1,14 @@
 package mua;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Stack;
+
+import mua.NameSpace.ReadMode;
 
 public class Reader {
     private Scanner in;
@@ -12,17 +16,23 @@ public class Reader {
     // 定义表读入时的层数
     private int returnLayer;
 
+    // 定义中缀表达式跳过的层数
+    private int jumpReadExpr;
+
+    // 定义中缀表达式中前缀表达式中中缀表达式跳过的层数
+    private int jumpRead;
+
     // 定义中缀表达式的运算优先级
-    private static final Map<Character, Integer> priority = new HashMap<Character, Integer>() {
+    private static final Map<String, Integer> priority = new HashMap<String, Integer>() {
         private static final long serialVersionUID = 1L;
         {
-            put('(', 1);
-            put('+', 2);
-            put('-', 2);
-            put('*', 3);
-            put('/', 3);
-            put('%', 3);
-            put(')', 4);
+            put("(", 1);
+            put("+", 2);
+            put("-", 2);
+            put("*", 3);
+            put("/", 3);
+            put("%", 3);
+            put(")", 4);
         }
     };
 
@@ -33,11 +43,11 @@ public class Reader {
 
     public void readAll() {
         while (in.hasNext()) {
-            read();
+            read(NameSpace.ReadMode.inputScanner, null);
         }
     }
 
-    private Value read() {
+    public Value read(NameSpace.ReadMode mode, String[] exp) {
         // 处理逻辑如下
         // 操作符栈存储操作符，values栈存储操作量
         // 一个操作符可能有多个操作量，再对应用一个栈存放
@@ -48,18 +58,44 @@ public class Reader {
         Stack<Operation> operations = new Stack<Operation>();
         Stack<Stack<Value>> values = new Stack<>();
 
+        if (mode == ReadMode.runList && exp.length == 1) {
+            return new Value(exp[0]);
+        }
+
+        int cnt = 0;
+        jumpReadExpr = 0;
         while (true) {
-            String element = in.next();
+            String element;
+            if (mode == NameSpace.ReadMode.inputScanner) {
+                element = in.next();
+            } else {
+                element = exp[cnt++];
+            }
 
             if (element.startsWith("[")) {
                 values.peek().push(readList(element));
             } else if (element.startsWith("(")) {
-                readExpr(element);
+                if (mode == NameSpace.ReadMode.inputScanner) {
+                    values.peek().push(readExpr(NameSpace.ReadMode.inputScanner, element, null));
+                } else {
+                    // 这种情况实在是过于复杂了
+                    // 他是指(add (1+2) 3)这种情况里，add以后再去递归地读一个中缀表达式
+                    // 要传的参数是：以element作为first，以element后面的所有元素作为srcExp
+                    ArrayList<String> tempArrayList = new ArrayList<>(Arrays.asList(exp));
+                    List<String> tempList = tempArrayList.subList(cnt, tempArrayList.size());
+                    String[] srcExp = tempList.toArray(new String[0]);
+                    values.peek().push(readExpr(NameSpace.ReadMode.stringArray, element, srcExp));
+                    jumpReadExpr += jumpRead;
+                    jumpReadExpr--;
+                }
             } else if (element.startsWith(":")) {
                 operations.push(Operation.colon);
                 values.push(new Stack<>());
                 values.peek().push(new Value(element.substring(1)));
             } else {
+                if (element.equals("if"))
+                    element = "IF";
+
                 if (NameSpace.ops.contains(element)) {
                     operations.push(Operation.valueOf(element));
                     values.push(new Stack<Value>());
@@ -90,9 +126,14 @@ public class Reader {
                 }
             }
 
-            if (operations.size() == 0)
+            if (mode == ReadMode.runList) {
+                if (cnt == exp.length)
+                    break;
+            } else if (operations.size() == 0)
                 break;
         }
+
+        jumpReadExpr += cnt;
 
         // 一般来说，最外层的返回值是没有意义的
         // 但是在括号运算符里需要用到
@@ -101,7 +142,6 @@ public class Reader {
 
     private Value readList(String first) {
         // [a [b [c d] e]] with no space behind '[' and in front of ']'
-        System.out.println("Now reading a list");
         ArrayList<Value> list = new ArrayList<>();
         first = first.substring(1);
         boolean isFirst = true;
@@ -146,16 +186,49 @@ public class Reader {
         return v;
     }
 
-    private void readExpr(String first) {
+    private Value readExpr(NameSpace.ReadMode mode, String first, String[] srcExp) {
         String exp = first;
-        while (!exp.endsWith(")")) {
-            exp = exp + in.next();
+        int left = 0, right = 0;
+        int cnt = 0;
+        jumpRead = 0;
+
+        for (Character c : first.toCharArray()) {
+            if (c.equals('('))
+                left++;
+            if (c.equals(')'))
+                right++;
+        }
+
+        while (left != right) {
+            String next;
+            if (mode == NameSpace.ReadMode.inputScanner) {
+                next = in.next();
+            } else {
+                next = srcExp[cnt++];
+            }
+            for (Character c : next.toCharArray()) {
+                if (c.equals('('))
+                    left++;
+                if (c.equals(')'))
+                    right++;
+            }
+            exp = exp + " " + next;
         }
 
         // add space
         for (int i = 0; i < exp.length(); ++i) {
             char c = exp.charAt(i);
-            if (priority.containsKey(c)) {
+            if (priority.containsKey(String.valueOf(c))) {
+                if (c == '-') {
+                    int j = 1;
+                    char pre = exp.charAt(i - 1);
+                    while (pre == ' ') {
+                        pre = exp.charAt(i - j);
+                        j++;
+                    }
+                    if (priority.containsKey(String.valueOf(pre)))
+                        continue;
+                }
                 StringBuilder sb = new StringBuilder(exp);
                 sb.insert(i, " ");
                 sb.insert(i + 2, " ");
@@ -164,25 +237,70 @@ public class Reader {
             }
         }
 
+        exp = exp.replace(":", " colon ");
+
         // 第一个是空，后面每个都分割好了
         String[] words = exp.split("\\s+");
 
-        Stack<Character> op = new Stack<>();
+        Stack<String> op = new Stack<>();
         Stack<Double> num = new Stack<>();
 
         for (int i = 1; i < words.length; ++i) {
             String s = words[i];
-            try{
+            try {
                 Double d = Double.parseDouble(s);
                 num.push(d);
             } catch (NumberFormatException e) {
-                if (NameSpace.variables.containsKey(s)) {
-
-                }
-                else {
-                    
+                if (NameSpace.ops.contains(s)) {
+                    ArrayList<String> tempArrayList = new ArrayList<String>(Arrays.asList(words));
+                    List<String> tempList = tempArrayList.subList(i, tempArrayList.size());
+                    String[] tempStr = tempList.toArray(new String[0]);
+                    Value v = read(NameSpace.ReadMode.stringArray, tempStr);
+                    num.push(v.getNumber());
+                    i += jumpReadExpr;
+                    i--;// 因为外面还有一个i++
+                } else {
+                    if (s.equals("(")) {
+                        op.push(s);
+                    } else if (s.equals(")")) {
+                        while (!op.peek().equals("(")) {
+                            num.push(calc2Num(num, op.pop()));
+                        }
+                        op.pop();
+                    } else {
+                        if (op.empty())
+                            op.push(s);
+                        else {
+                            while (!op.empty()) {
+                                String temp = op.peek();
+                                if (priority.get(temp) >= priority.get(s))
+                                    num.push(calc2Num(num, op.pop()));
+                                else
+                                    break;
+                            }
+                            op.push(s);
+                        }
+                    }
                 }
             }
         }
+
+        jumpRead = words.length - 1;
+        return new Value(String.valueOf(num.pop()));
+    }
+
+    private double calc2Num(Stack<Double> operand, String op) {
+        double b = operand.pop();
+        double a = operand.pop();
+        if (op.equals("+"))
+            return a + b;
+        else if (op.equals("-"))
+            return a - b;
+        else if (op.equals("*"))
+            return a * b;
+        else if (op.equals("/"))
+            return a / b;
+        else
+            return a % b;
     }
 }

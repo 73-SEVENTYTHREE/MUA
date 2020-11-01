@@ -37,7 +37,15 @@ public class Value {
     }
 
     public String getElement() {
-        return element;
+        if (type != Type.list)
+            return element;
+        else {
+            String retStr = "";
+            for (Value v : listElement) {
+                retStr = retStr + " " + v.getElement();
+            }
+            return retStr;
+        }
     }
 
     public void setElement(String e) {
@@ -46,5 +54,13 @@ public class Value {
 
     public void addListVal(Value v) {
         listElement.add(v);
+    }
+
+    public String[] toStringArray() {
+        ArrayList<String> list = new ArrayList<>();
+        for (int i = 0; i < listElement.size(); ++i) {
+            list.add(listElement.get(i).getElement());
+        }
+        return list.toArray(new String[0]);
     }
 }

@@ -1,5 +1,9 @@
 package mua;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Arrays;
+
 public enum Operation {
     make {
         private int operandNum = 2;
@@ -216,9 +220,15 @@ public enum Operation {
 
         public String calc(String[] args) {
             // eq v1 v2
-            String v1 = (new Value(args[0])).getWord();
-            String v2 = (new Value(args[1])).getWord();
+            String v1 = args[0];
+            String v2 = args[1];
 
+            if (v1.startsWith("\""))
+                v1 = v1.substring(1);
+
+            if (v2.startsWith("\""))
+                v2 = v2.substring(1);
+                
             // 这里还是要考虑两个变量是否是数字的情况
             // 是为了避免出现15.0和15的情况
             try {
@@ -305,7 +315,9 @@ public enum Operation {
 
         public String calc(String[] args) {
             // isnumber v
-            String v = (new Value(args[0])).getWord();
+            String v = args[0];
+            if (v.startsWith("\""))
+                v = v.substring(1);
             try {
                 Double.parseDouble(v);
                 return String.valueOf(true);
@@ -323,7 +335,7 @@ public enum Operation {
 
         public String calc(String[] args) {
             // isbool v
-            String v = (new Value(args[0])).getWord();
+            String v = args[0];
             return String.valueOf(v.equals("true") || v.equals("false"));
         }
     },
@@ -336,10 +348,15 @@ public enum Operation {
 
         public String calc(String[] args) {
             // isword v
-            if (NameSpace.variables.get(args[0].substring(1)).type != Value.Type.list) {
-                return String.valueOf(true);
-            } else {
+            String v = args[0];
+            try {
+                Double.parseDouble(v);
                 return String.valueOf(false);
+            } catch (NumberFormatException e) {
+                if (!v.equals("true") && !v.equals("false") && !v.contains(" "))
+                    return String.valueOf(true);
+                else
+                    return String.valueOf(false);
             }
         }
     },
@@ -352,11 +369,10 @@ public enum Operation {
 
         public String calc(String[] args) {
             // islist v
-            if (NameSpace.variables.get(args[0].substring(1)).type == Value.Type.list) {
+            if (args[0].contains(" "))
                 return String.valueOf(true);
-            } else {
+            else
                 return String.valueOf(false);
-            }
         }
     },
     isempty {
@@ -368,15 +384,47 @@ public enum Operation {
 
         public String calc(String[] args) {
             // isempty v
-            if (NameSpace.variables.get(args[0].substring(1)).listElement.isEmpty()) {
+            if (args[0].equals(""))
                 return String.valueOf(true);
-            } else {
+            else
                 return String.valueOf(false);
+
+        }
+    },
+    IF {
+        public int operandNum = 3;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public String calc(String[] args) {
+            String[] s = new String[1];
+            if (args[2].equals("true")) {
+                s[0] = args[1];
+            } else {
+                s[0] = args[0];
             }
+            return Operation.run.calc(s);
         }
     },
     run {
+        public int operandNum = 1;
 
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public String calc(String[] args) {
+            String[] srcExp = args[0].split("\\s+");
+
+            ArrayList<String> tempArrayList = new ArrayList<String>(Arrays.asList(srcExp));
+            List<String> tempList = tempArrayList.subList(1, tempArrayList.size());
+            srcExp = tempList.toArray(new String[0]);
+
+            Value v = new Reader(null).read(NameSpace.ReadMode.runList, srcExp);
+            return v.getElement();
+        }
     };
 
     private static Double[] getTwoNum(String[] args) {
