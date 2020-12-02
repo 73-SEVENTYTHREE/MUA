@@ -4,12 +4,13 @@ import java.util.ArrayList;
 
 public class Value {
     public static enum Type {
-        number, word, list, bool;
+        number, word, list, bool, function;
     }
 
     private String element;
     public ArrayList<Value> listElement;
     public Type type;
+    public Function func;
 
     Value(String e) {
         element = e;
@@ -37,13 +38,14 @@ public class Value {
     }
 
     public String getElement() {
-        if (type != Type.list)
+        if (type != Type.list && type != Type.function)
             return element;
         else {
             String retStr = "";
             for (Value v : listElement) {
-                retStr = retStr + " " + v.getElement();
+                retStr = retStr + v.getElement() + " ";
             }
+            retStr = retStr.substring(0, retStr.length() - 1);
             return retStr;
         }
     }

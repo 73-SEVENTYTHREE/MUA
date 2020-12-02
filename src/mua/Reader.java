@@ -43,11 +43,11 @@ public class Reader {
 
     public void readAll() {
         while (in.hasNext()) {
-            read(NameSpace.ReadMode.inputScanner, null);
+            read(NameSpace.ReadMode.inputScanner, null, null);
         }
     }
 
-    public Value read(NameSpace.ReadMode mode, String[] exp) {
+    public Value read(NameSpace.ReadMode mode, String[] exp, NameSpace n) {
         // 处理逻辑如下
         // 操作符栈存储操作符，values栈存储操作量
         // 一个操作符可能有多个操作量，再对应用一个栈存放
@@ -55,7 +55,7 @@ public class Reader {
         // 如果一个操作符后面接了数量正好的操作数，那么就可以算了
         // 否则，他需要用到后面的操作的某个返回值，而后面读入的操作符又会新开一个栈
         // 操作运算完后，对应的values会释放，返回值再压栈，供前一个操作符使用
-        Stack<Operation> operations = new Stack<Operation>();
+        Stack<OpInterface> operations = new Stack<OpInterface>();
         Stack<Stack<Value>> values = new Stack<>();
 
         if (mode == ReadMode.runList && exp.length == 1) {
@@ -76,7 +76,7 @@ public class Reader {
                 values.peek().push(readList(element));
             } else if (element.startsWith("(")) {
                 if (mode == NameSpace.ReadMode.inputScanner) {
-                    values.peek().push(readExpr(NameSpace.ReadMode.inputScanner, element, null));
+                    values.peek().push(readExpr(NameSpace.ReadMode.inputScanner, element, null, n));
                 } else {
                     // 这种情况实在是过于复杂了
                     // 他是指(add (1+2) 3)这种情况里，add以后再去递归地读一个中缀表达式
@@ -84,7 +84,7 @@ public class Reader {
                     ArrayList<String> tempArrayList = new ArrayList<>(Arrays.asList(exp));
                     List<String> tempList = tempArrayList.subList(cnt, tempArrayList.size());
                     String[] srcExp = tempList.toArray(new String[0]);
-                    values.peek().push(readExpr(NameSpace.ReadMode.stringArray, element, srcExp));
+                    values.peek().push(readExpr(NameSpace.ReadMode.stringArray, element, srcExp, n));
                     jumpReadExpr += jumpRead;
                     jumpReadExpr--;
                 }
@@ -95,9 +95,17 @@ public class Reader {
             } else {
                 if (element.equals("if"))
                     element = "IF";
+                if (element.equals("return"))
+                    element = "RETURN";
 
                 if (NameSpace.ops.contains(element)) {
                     operations.push(Operation.valueOf(element));
+                    values.push(new Stack<Value>());
+                } else if (NameSpace.variables.containsKey(element)
+                        && NameSpace.variables.get(element).type == Value.Type.function) {
+                    // 每个操作都要新建一个Function，有一个新的NameSpace
+                    Function f = NameSpace.variables.get(element).func;
+                    operations.push(new Function(f.getOpNum(), f.paraList, f.runList));
                     values.push(new Stack<Value>());
                 } else {
                     values.peek().push(new Value(element));
@@ -106,13 +114,13 @@ public class Reader {
 
             while (!operations.empty()) {
                 if (operations.peek().getOpNum() == values.peek().size()) {
-                    String[] args = new String[operations.peek().getOpNum()];
+                    Value[] args = new Value[operations.peek().getOpNum()];
                     for (int i = 0; i < operations.peek().getOpNum(); ++i) {
-                        args[i] = values.peek().pop().getElement();
+                        args[i] = values.peek().pop();
                     }
                     values.pop();
 
-                    String retValue = operations.peek().calc(args);
+                    String retValue = operations.peek().calc(args, n);
                     operations.pop();
 
                     if (!values.empty()) {
@@ -143,8 +151,12 @@ public class Reader {
     private Value readList(String first) {
         // [a [b [c d] e]] with no space behind '[' and in front of ']'
         ArrayList<Value> list = new ArrayList<>();
-        first = first.substring(1);
         boolean isFirst = true;
+        if (first.equals("[")) {
+            isFirst = false;
+        } else {
+            first = first.substring(1);
+        }
 
         String element = first;
         do {
@@ -160,6 +172,10 @@ public class Reader {
                     break;
                 }
             } else if (element.endsWith("]")) {
+                if (element.equals("]")) {
+                    //returnLayer++;
+                    break;
+                }
                 list.add(new Value(element.substring(0, element.indexOf("]"))));
                 // 这时有两种情况
                 // 一种是x]，那么他会在接下来的while中正常退出
@@ -183,10 +199,18 @@ public class Reader {
         for (Value value : list) {
             v.addListVal(value);
         }
+        if (v.listElement.size() == 2) {
+            if (v.listElement.get(0).type == Value.Type.list && v.listElement.get(1).type == Value.Type.list) {
+                v.type = Value.Type.function;
+                v.func = new Function(v.listElement.get(0).listElement.size(), v.listElement.get(0),
+                        v.listElement.get(1));
+                v.func.runList = v.listElement.get(1);
+            }
+        }
         return v;
     }
 
-    private Value readExpr(NameSpace.ReadMode mode, String first, String[] srcExp) {
+    private Value readExpr(NameSpace.ReadMode mode, String first, String[] srcExp, NameSpace n) {
         String exp = first;
         int left = 0, right = 0;
         int cnt = 0;
@@ -255,7 +279,7 @@ public class Reader {
                     ArrayList<String> tempArrayList = new ArrayList<String>(Arrays.asList(words));
                     List<String> tempList = tempArrayList.subList(i, tempArrayList.size());
                     String[] tempStr = tempList.toArray(new String[0]);
-                    Value v = read(NameSpace.ReadMode.stringArray, tempStr);
+                    Value v = read(NameSpace.ReadMode.stringArray, tempStr, n);
                     num.push(v.getNumber());
                     i += jumpReadExpr;
                     i--;// 因为外面还有一个i++

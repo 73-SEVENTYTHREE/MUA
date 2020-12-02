@@ -8,6 +8,8 @@ import java.util.HashSet;
 public class NameSpace {
     public static Map<String, Value> variables = new HashMap<String, Value>();
 
+    public Map<String, Value> localVariables = new HashMap<String, Value>();
+
     public static enum ReadMode {
         inputScanner, stringArray, runList
     };
@@ -40,6 +42,7 @@ public class NameSpace {
             add("islist");
             add("isbool");
             add("isempty");
+            add("RETURN");
         }
     };
 }
