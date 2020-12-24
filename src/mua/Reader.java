@@ -22,6 +22,13 @@ public class Reader {
     // 定义中缀表达式中前缀表达式中中缀表达式跳过的层数
     private int jumpRead;
 
+    // 定义run时内部读列表时跳过的条目数量
+    // 这里做了简化，因为输入样例中runList里没有嵌套列表
+    // 所以readList中不会调用递归
+    // 所以每次在read中调用readList就给他清零
+    // 返回以后直接在read中跳过，不去考虑内部还有跳过会怎么办
+    private int jumpReadList;
+
     // 定义中缀表达式的运算优先级
     private static final Map<String, Integer> priority = new HashMap<String, Integer>() {
         private static final long serialVersionUID = 1L;
@@ -58,7 +65,12 @@ public class Reader {
         Stack<OpInterface> operations = new Stack<OpInterface>();
         Stack<Stack<Value>> values = new Stack<>();
 
+        /* if (mode == ReadMode.runList) {
+            NameSpace.jumpRun.push(0);
+        } */
+        
         if (mode == ReadMode.runList && exp.length == 1) {
+            NameSpace.jumpRun.push(1);
             return new Value(exp[0]);
         }
 
@@ -71,9 +83,21 @@ public class Reader {
             } else {
                 element = exp[cnt++];
             }
+            element = element.replaceAll("if", "IF");
+            element = element.replaceAll("return", "RETURN");
 
             if (element.startsWith("[")) {
-                values.peek().push(readList(element));
+                // 两种情况，分别是从输入流读和从run的是srcExp读
+                if (mode == NameSpace.ReadMode.inputScanner) {
+                    values.peek().push(readList(element, mode, null, n));
+                } else {
+                    ArrayList<String> tempArrayList = new ArrayList<>(Arrays.asList(exp));
+                    List<String> tempList = tempArrayList.subList(cnt - 1, tempArrayList.size());
+                    String[] srcExp = tempList.toArray(new String[0]);
+                    values.peek().push(readList(element, mode, srcExp, n));
+                    cnt += jumpReadList;
+                    cnt--;
+                }
             } else if (element.startsWith("(")) {
                 if (mode == NameSpace.ReadMode.inputScanner) {
                     values.peek().push(readExpr(NameSpace.ReadMode.inputScanner, element, null, n));
@@ -87,19 +111,23 @@ public class Reader {
                     values.peek().push(readExpr(NameSpace.ReadMode.stringArray, element, srcExp, n));
                     jumpReadExpr += jumpRead;
                     jumpReadExpr--;
+                    cnt += jumpReadExpr;
+                    cnt --;
                 }
             } else if (element.startsWith(":")) {
                 operations.push(Operation.colon);
                 values.push(new Stack<>());
                 values.peek().push(new Value(element.substring(1)));
             } else {
-                if (element.equals("if"))
-                    element = "IF";
-                if (element.equals("return"))
-                    element = "RETURN";
 
+                Map<String, Value> v = (n == null) ? NameSpace.variables : n.localVariables;
                 if (NameSpace.ops.contains(element)) {
                     operations.push(Operation.valueOf(element));
+                    values.push(new Stack<Value>());
+                } else if (v.containsKey(element) && v.get(element).type == Value.Type.function) {
+                    // 每个操作都要新建一个Function，有一个新的NameSpace
+                    Function f = v.get(element).func;
+                    operations.push(new Function(f.getOpNum(), f.paraList, f.runList));
                     values.push(new Stack<Value>());
                 } else if (NameSpace.variables.containsKey(element)
                         && NameSpace.variables.get(element).type == Value.Type.function) {
@@ -123,11 +151,35 @@ public class Reader {
                     String retValue = operations.peek().calc(args, n);
                     operations.pop();
 
+                    Value newV;
+                    if (retValue.startsWith("function")) {
+                        newV = new Value("");
+                        newV.type = Value.Type.function;
+                        String[] vStrings = retValue.split("\\s+");
+                        Value p = new Value("");
+                        p.type = Value.Type.list;
+                        int pN = Integer.parseInt(vStrings[1]);
+                        int rN = Integer.parseInt(vStrings[2]);
+                        for (int i = 0; i < pN; ++i) {
+                            p.listElement.add(new Value(vStrings[3 + i]));
+                        }
+                        Value r = new Value("");
+                        r.type = Value.Type.list;
+                        for (int i = 0; i < rN; ++i) {
+                            r.listElement.add(new Value(vStrings[3 + i + pN]));
+                        }
+                        newV.listElement.add(p);
+                        newV.listElement.add(r);
+                        newV.func = new Function(newV.listElement.get(0).listElement.size(), newV.listElement.get(0),
+                                newV.listElement.get(1));
+                    } else {
+                        newV = new Value(retValue);
+                    }
                     if (!values.empty()) {
-                        values.peek().push(new Value(retValue));
+                        values.peek().push(newV);
                     } else {
                         values.push(new Stack<>());
-                        values.peek().push(new Value(retValue));
+                        values.peek().push(newV);
                     }
                 } else {
                     break;
@@ -137,18 +189,24 @@ public class Reader {
             if (mode == ReadMode.runList) {
                 if (cnt == exp.length)
                     break;
-            } else if (operations.size() == 0)
+            }
+            if (operations.size() == 0)
                 break;
         }
 
         jumpReadExpr += cnt;
 
+        if (mode == ReadMode.runList) {
+            NameSpace.jumpRun.push(cnt);
+        }
+        
         // 一般来说，最外层的返回值是没有意义的
         // 但是在括号运算符里需要用到
         return values.peek().peek();
     }
 
-    private Value readList(String first) {
+    // 以element为首，exp也以element开头
+    private Value readList(String first, NameSpace.ReadMode mode, String[] exp, NameSpace n) {
         // [a [b [c d] e]] with no space behind '[' and in front of ']'
         ArrayList<Value> list = new ArrayList<>();
         boolean isFirst = true;
@@ -158,14 +216,29 @@ public class Reader {
             first = first.substring(1);
         }
 
+        int cnt = 1;
         String element = first;
         do {
-            if (!isFirst)
-                element = in.next();
+            if (!isFirst) {
+                if (mode == NameSpace.ReadMode.inputScanner) {
+                    element = in.next();
+                } else {
+                    element = exp[cnt++];
+                }
+            }
+
             isFirst = false;
 
             if (element.startsWith("[")) {
-                list.add(readList(element));
+                if (mode == NameSpace.ReadMode.inputScanner) {
+                    list.add(readList(element, mode, null, n));
+                } else {
+                    // 这部分实际上不会发生
+                    ArrayList<String> tempArrayList = new ArrayList<>(Arrays.asList(exp));
+                    List<String> tempList = tempArrayList.subList(cnt, tempArrayList.size());
+                    String[] srcExp = tempList.toArray(new String[0]);
+                    list.add(readList(element, mode, srcExp, n));
+                }
 
                 if (returnLayer > 0) {
                     returnLayer--;
@@ -173,7 +246,7 @@ public class Reader {
                 }
             } else if (element.endsWith("]")) {
                 if (element.equals("]")) {
-                    //returnLayer++;
+                    // returnLayer++;
                     break;
                 }
                 list.add(new Value(element.substring(0, element.indexOf("]"))));
@@ -207,6 +280,7 @@ public class Reader {
                 v.func.runList = v.listElement.get(1);
             }
         }
+        jumpReadList = cnt;
         return v;
     }
 
@@ -275,7 +349,7 @@ public class Reader {
                 Double d = Double.parseDouble(s);
                 num.push(d);
             } catch (NumberFormatException e) {
-                if (NameSpace.ops.contains(s)) {
+                if (NameSpace.ops.contains(s) || NameSpace.variables.containsKey(s)) {
                     ArrayList<String> tempArrayList = new ArrayList<String>(Arrays.asList(words));
                     List<String> tempList = tempArrayList.subList(i, tempArrayList.size());
                     String[] tempStr = tempList.toArray(new String[0]);
@@ -310,6 +384,14 @@ public class Reader {
         }
 
         jumpRead = words.length - 1;
+        while (!op.empty()) {
+            String temp = op.peek();
+            if (temp.equals("("))
+                break;
+            // if (priority.get(temp) >= priority.get(s))
+            num.push(calc2Num(num, op.pop()));
+
+        }
         return new Value(String.valueOf(num.pop()));
     }
 

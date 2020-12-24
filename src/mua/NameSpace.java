@@ -1,6 +1,7 @@
 package mua;
 
 import java.util.Set;
+import java.util.Stack;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,6 +15,8 @@ public class NameSpace {
         inputScanner, stringArray, runList
     };
 
+    public static Stack<Integer> jumpRun = new Stack<>();
+    
     public static Set<String> ops = new HashSet<String>() {
         private static final long serialVersionUID = 1L;
         {
@@ -43,6 +46,7 @@ public class NameSpace {
             add("isbool");
             add("isempty");
             add("RETURN");
+            add("export");
         }
     };
 }

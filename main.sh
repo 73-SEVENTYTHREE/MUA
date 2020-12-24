@@ -19,5 +19,5 @@ javac -cp src Test.java
 #echo "executing"
 java -cp .:src Test $1
 #cat $1
-#echo "cleaning"
+#echo "cleaning" 
 #itdir "."

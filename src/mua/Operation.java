@@ -1,8 +1,8 @@
 package mua;
 
-/* import java.util.ArrayList;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Arrays; */
+import java.util.Arrays;
 import java.util.Map;
 
 public enum Operation implements OpInterface {
@@ -51,10 +51,40 @@ public enum Operation implements OpInterface {
         public String calc(Value[] args, NameSpace n) {
             // :v
             Map<String, Value> v = (n == null) ? NameSpace.variables : n.localVariables;
-            if (v.containsKey(args[0].getElement()))
-                return v.get(args[0].getElement()).getElement();
-            else
-                return NameSpace.variables.get(args[0].getElement()).getElement();
+            String s = args[0].getElement();
+            if (s.startsWith("\"")) {
+                s = s.substring(1);
+            }
+            /*
+             * if (v.containsKey(s)) { if (v.get(s).getElement().startsWith("\"")) { s =
+             * v.get(s).getElement().substring(1); NameSpace.variables.put("a", new
+             * Value("6")); } }
+             */
+
+            if (v.containsKey(s)) {
+                if (v.get(s).type == Value.Type.function) {
+                    String r = "function ";
+                    r += v.get(s).listElement.get(0).listElement.size();
+                    r += " ";
+                    r += v.get(s).listElement.get(1).listElement.size();
+                    r += " ";
+                    r += v.get(s).getElement();
+
+                    return r;
+                } else
+                    return v.get(s).getElement();
+            } else {
+                if (NameSpace.variables.get(s).type == Value.Type.function) {
+                    String r = "function ";
+                    r += NameSpace.variables.get(s).listElement.get(0).listElement.size();
+                    r += " ";
+                    r += NameSpace.variables.get(s).listElement.get(1).listElement.size();
+                    r += " ";
+                    r += NameSpace.variables.get(s).getElement();
+                    return r;
+                } else
+                    return NameSpace.variables.get(s).getElement();
+            }
         }
     },
     thing {
@@ -415,14 +445,18 @@ public enum Operation implements OpInterface {
         }
 
         public String calc(Value[] args, NameSpace n) {
-            String[] s = new String[1];
+            String s;
             if (args[2].getElement().equals("true")) {
-                s[0] = args[1].getElement();
+                s = args[1].getRunnableElement();
             } else {
-                s[0] = args[0].getElement();
+                s = args[0].getRunnableElement();
             }
-            // return Operation.run.calc(s, n);
-            return "";
+            s = s.substring(1);
+            s = s.substring(0, s.length() - 1);
+            Value[] v = new Value[1];
+            v[0] = new Value(s);
+            return Operation.run.calc(v, n);
+            // return "";
         }
     },
     run {
@@ -440,15 +474,32 @@ public enum Operation implements OpInterface {
             // 需要给把待运行的代码按空格分词
             String[] srcExp = args[0].getElement().split("\\s+");
 
+            Value v;
+            int j = 0;
+            do {
+                ArrayList<String> tempArrayList = new ArrayList<>(Arrays.asList(srcExp));
+                List<String> tempList = tempArrayList.subList(j, srcExp.length);
+                String[] s = tempList.toArray(new String[0]);
+                v = new Reader(null).read(NameSpace.ReadMode.runList, s, n);
+                j += NameSpace.jumpRun.pop();
+            } while (j < srcExp.length);
             /*
-             * ArrayList<String> tempArrayList = new
-             * ArrayList<String>(Arrays.asList(srcExp)); List<String> tempList =
-             * tempArrayList.subList(1, tempArrayList.size()); srcExp = tempList.toArray(new
-             * String[0]);
+             * int j = NameSpace.jumpRun.pop(); if (j == srcExp.length) { int l; }
              */
-
-            Value v = new Reader(null).read(NameSpace.ReadMode.runList, srcExp, n);
             return v.getElement();
+        }
+    },
+    export {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public String calc(Value[] args, NameSpace n) {
+            String name = args[0].getElement().substring(1);
+            NameSpace.variables.put(name, new Value(n.localVariables.get(name).getElement()));
+            return n.localVariables.get(name).getElement();
         }
     },
     RETURN {

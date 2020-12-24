@@ -42,6 +42,10 @@ public class Value {
             return element;
         else {
             String retStr = "";
+            if (listElement.isEmpty()) {
+                return "";
+            }
+
             for (Value v : listElement) {
                 retStr = retStr + v.getElement() + " ";
             }
@@ -64,5 +68,23 @@ public class Value {
             list.add(listElement.get(i).getElement());
         }
         return list.toArray(new String[0]);
+    }
+
+    public String getRunnableElement(){
+        if (type != Type.list && type != Type.function)
+            return element;
+        else {
+            String retStr = "[";
+            if (listElement.isEmpty()) {
+                return "[]";
+            }
+
+            for (Value v : listElement) {
+                retStr = retStr + v.getRunnableElement() + " ";
+            }
+            retStr = retStr.substring(0, retStr.length() - 1);
+            retStr = retStr + "]";
+            return retStr;
+        }
     }
 }
