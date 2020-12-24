@@ -65,10 +65,10 @@ public class Reader {
         Stack<OpInterface> operations = new Stack<OpInterface>();
         Stack<Stack<Value>> values = new Stack<>();
 
-        /* if (mode == ReadMode.runList) {
-            NameSpace.jumpRun.push(0);
-        } */
-        
+        /*
+         * if (mode == ReadMode.runList) { NameSpace.jumpRun.push(0); }
+         */
+
         if (mode == ReadMode.runList && exp.length == 1) {
             NameSpace.jumpRun.push(1);
             return new Value(exp[0]);
@@ -112,7 +112,7 @@ public class Reader {
                     jumpReadExpr += jumpRead;
                     jumpReadExpr--;
                     cnt += jumpReadExpr;
-                    cnt --;
+                    cnt--;
                 }
             } else if (element.startsWith(":")) {
                 operations.push(Operation.colon);
@@ -140,6 +140,11 @@ public class Reader {
                 }
             }
 
+            if (element.equals("readlist")) {
+                String lineList = in.nextLine();
+                
+            }
+
             while (!operations.empty()) {
                 if (operations.peek().getOpNum() == values.peek().size()) {
                     Value[] args = new Value[operations.peek().getOpNum()];
@@ -148,32 +153,17 @@ public class Reader {
                     }
                     values.pop();
 
-                    String retValue = operations.peek().calc(args, n);
+                    Value retValue = operations.peek().calc(args, n);
                     operations.pop();
 
                     Value newV;
-                    if (retValue.startsWith("function")) {
+                    if (retValue.type == Value.Type.function) {
                         newV = new Value("");
                         newV.type = Value.Type.function;
-                        String[] vStrings = retValue.split("\\s+");
-                        Value p = new Value("");
-                        p.type = Value.Type.list;
-                        int pN = Integer.parseInt(vStrings[1]);
-                        int rN = Integer.parseInt(vStrings[2]);
-                        for (int i = 0; i < pN; ++i) {
-                            p.listElement.add(new Value(vStrings[3 + i]));
-                        }
-                        Value r = new Value("");
-                        r.type = Value.Type.list;
-                        for (int i = 0; i < rN; ++i) {
-                            r.listElement.add(new Value(vStrings[3 + i + pN]));
-                        }
-                        newV.listElement.add(p);
-                        newV.listElement.add(r);
-                        newV.func = new Function(newV.listElement.get(0).listElement.size(), newV.listElement.get(0),
-                                newV.listElement.get(1));
+                        newV.func = new Function(retValue.func.getOpNum(), retValue.func.paraList,
+                                retValue.func.runList);
                     } else {
-                        newV = new Value(retValue);
+                        newV = new Value(retValue.getElement());
                     }
                     if (!values.empty()) {
                         values.peek().push(newV);
@@ -199,7 +189,7 @@ public class Reader {
         if (mode == ReadMode.runList) {
             NameSpace.jumpRun.push(cnt);
         }
-        
+
         // 一般来说，最外层的返回值是没有意义的
         // 但是在括号运算符里需要用到
         return values.peek().peek();

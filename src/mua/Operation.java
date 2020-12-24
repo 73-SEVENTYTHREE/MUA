@@ -13,7 +13,7 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // make args[1] args[0]
             // make v1 v2
             // 毫无疑问，v1一定会以引号开头
@@ -28,15 +28,15 @@ public enum Operation implements OpInterface {
 
             if (args[0].type == Value.Type.function) {
                 v.put(v1, args[0]);
-                return v2;
+                return new Value(v2);
             } else {
                 // 如果v2不以引号开头，那么他一定是某个变量的名字，直接赋值就行了（相当于指针）
                 if (!v2.startsWith("\"")) {
                     v.get(v1).setElement(v2);
-                    return v2;
+                    return new Value(v2);
                 } else {
                     v.get(v1).setElement(v2.substring(1));
-                    return v2.substring(1);
+                    return new Value(v2.substring(1));
                 }
             }
         }
@@ -48,7 +48,7 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // :v
             Map<String, Value> v = (n == null) ? NameSpace.variables : n.localVariables;
             String s = args[0].getElement();
@@ -62,28 +62,12 @@ public enum Operation implements OpInterface {
              */
 
             if (v.containsKey(s)) {
-                if (v.get(s).type == Value.Type.function) {
-                    String r = "function ";
-                    r += v.get(s).listElement.get(0).listElement.size();
-                    r += " ";
-                    r += v.get(s).listElement.get(1).listElement.size();
-                    r += " ";
-                    r += v.get(s).getElement();
-
-                    return r;
-                } else
-                    return v.get(s).getElement();
+                return v.get(s);
             } else {
                 if (NameSpace.variables.get(s).type == Value.Type.function) {
-                    String r = "function ";
-                    r += NameSpace.variables.get(s).listElement.get(0).listElement.size();
-                    r += " ";
-                    r += NameSpace.variables.get(s).listElement.get(1).listElement.size();
-                    r += " ";
-                    r += NameSpace.variables.get(s).getElement();
-                    return r;
+                    return NameSpace.variables.get(s);
                 } else
-                    return NameSpace.variables.get(s).getElement();
+                    return NameSpace.variables.get(s);
             }
         }
     },
@@ -94,13 +78,9 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // thing v
-            Map<String, Value> v = (n == null) ? NameSpace.variables : n.localVariables;
-            if (v.containsKey(args[0].getElement()))
-                return v.get(args[0].getElement()).getElement();
-            else
-                return NameSpace.variables.get(args[0].getElement()).getElement();
+            return Operation.colon.calc(args, n);
         }
     },
     print {
@@ -110,7 +90,7 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             String retString = args[0].getElement();
             if (args[0].getElement().startsWith("\""))
                 retString = retString.substring(1);
@@ -123,12 +103,12 @@ public enum Operation implements OpInterface {
                 } else {
                     System.out.println(d);
                 }
-                return (String.valueOf(d));
+                return new Value(String.valueOf(d));
             } catch (NumberFormatException e) {
 
             }
             System.out.println(retString);
-            return retString;
+            return args[0];
         }
     },
     read {
@@ -138,8 +118,8 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
-            return args[0].getElement();
+        public Value calc(Value[] args, NameSpace n) {
+            return args[0];
         }
     },
     add {
@@ -149,10 +129,10 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // add n1 n2
             Double[] d = getTwoNum(args);
-            return String.valueOf(d[1] + d[0]);
+            return new Value(String.valueOf(d[1] + d[0]));
         }
     },
     sub {
@@ -162,10 +142,10 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // sub n1 n2
             Double[] d = getTwoNum(args);
-            return String.valueOf(d[1] - d[0]);
+            return new Value(String.valueOf(d[1] - d[0]));
         }
     },
     mul {
@@ -175,10 +155,10 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // mul n1 n2
             Double[] d = getTwoNum(args);
-            return String.valueOf(d[1] * d[0]);
+            return new Value(String.valueOf(d[1] * d[0]));
         }
     },
     div {
@@ -188,10 +168,10 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // div n1 n2
             Double[] d = getTwoNum(args);
-            return String.valueOf(d[1] / d[0]);
+            return new Value(String.valueOf(d[1] / d[0]));
         }
     },
     mod {
@@ -201,10 +181,10 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // mod n1 n2
             Double[] d = getTwoNum(args);
-            return String.valueOf(d[1].intValue() % d[0].intValue());
+            return new Value(String.valueOf(d[1].intValue() % d[0].intValue()));
         }
     },
     erase {
@@ -214,9 +194,9 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // erase v
-            String ret = NameSpace.variables.get(args[0].getElement().substring(1)).getElement();
+            Value ret = NameSpace.variables.get(args[0].getElement().substring(1));
             NameSpace.variables.remove(args[0].getElement().substring(1));
             return ret;
         }
@@ -228,9 +208,9 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // isname v
-            return String.valueOf(NameSpace.variables.containsKey((args[0].getElement()).substring(1)));
+            return new Value(String.valueOf(NameSpace.variables.containsKey((args[0].getElement()).substring(1))));
         }
     },
     eq {
@@ -240,7 +220,7 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // eq v1 v2
             String v1 = args[0].getWord();
             String v2 = args[1].getWord();
@@ -250,11 +230,11 @@ public enum Operation implements OpInterface {
             try {
                 double d1 = Double.parseDouble(v1);
                 double d2 = Double.parseDouble(v2);
-                return String.valueOf(d1 == d2);
+                return new Value(String.valueOf(d1 == d2));
             } catch (NumberFormatException e) {
 
             }
-            return String.valueOf(v1.equals(v2));
+            return new Value(String.valueOf(v1.equals(v2)));
         }
     },
     gt {
@@ -264,7 +244,7 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // eq v1 v2
             String v1 = args[0].getElement();
             String v2 = args[1].getElement();
@@ -280,11 +260,11 @@ public enum Operation implements OpInterface {
             try {
                 double d1 = Double.parseDouble(v1);
                 double d2 = Double.parseDouble(v2);
-                return String.valueOf(d1 < d2);
+                return new Value(String.valueOf(d1 < d2));
             } catch (NumberFormatException e) {
 
             }
-            return String.valueOf(v1.compareTo(v2) < 0);
+            return new Value(String.valueOf(v1.compareTo(v2) < 0));
         }
     },
     lt {
@@ -294,7 +274,7 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // eq v1 v2
             String v1 = args[0].getWord();
             String v2 = args[1].getWord();
@@ -304,11 +284,11 @@ public enum Operation implements OpInterface {
             try {
                 double d1 = Double.parseDouble(v1);
                 double d2 = Double.parseDouble(v2);
-                return String.valueOf(d1 > d2);
+                return new Value(String.valueOf(d1 > d2));
             } catch (NumberFormatException e) {
 
             }
-            return String.valueOf(v1.compareTo(v2) > 0);
+            return new Value(String.valueOf(v1.compareTo(v2) > 0));
         }
     },
     and {
@@ -318,11 +298,11 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // and v1 v2
             boolean b1 = Boolean.valueOf(args[0].getWord());
             boolean b2 = Boolean.valueOf(args[1].getWord());
-            return String.valueOf(b1 && b2);
+            return new Value(String.valueOf(b1 && b2));
         }
     },
     or {
@@ -332,11 +312,11 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // or v1 v2
             boolean b1 = Boolean.valueOf(args[0].getWord());
             boolean b2 = Boolean.valueOf(args[1].getWord());
-            return String.valueOf(b1 || b2);
+            return new Value(String.valueOf(b1 || b2));
         }
     },
     not {
@@ -346,10 +326,10 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // not v
             boolean b = Boolean.valueOf(args[0].getWord());
-            return String.valueOf(!b);
+            return new Value(String.valueOf(!b));
         }
     },
     isnumber {
@@ -359,16 +339,16 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // isnumber v
             String v = args[0].getElement();
             if (v.startsWith("\""))
                 v = v.substring(1);
             try {
                 Double.parseDouble(v);
-                return String.valueOf(true);
+                return new Value(String.valueOf(true));
             } catch (NumberFormatException e) {
-                return String.valueOf(false);
+                return new Value(String.valueOf(false));
             }
         }
     },
@@ -379,10 +359,10 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // isbool v
             String v = args[0].getElement();
-            return String.valueOf(v.equals("true") || v.equals("false"));
+            return new Value(String.valueOf(v.equals("true") || v.equals("false")));
         }
     },
     isword {
@@ -392,17 +372,17 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // isword v
             String v = args[0].getElement();
             try {
                 Double.parseDouble(v);
-                return String.valueOf(false);
+                return new Value(String.valueOf(false));
             } catch (NumberFormatException e) {
                 if (!v.equals("true") && !v.equals("false") && !v.contains(" "))
-                    return String.valueOf(true);
+                    return new Value(String.valueOf(true));
                 else
-                    return String.valueOf(false);
+                    return new Value(String.valueOf(false));
             }
         }
     },
@@ -413,12 +393,12 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // islist v
             if (args[0].getElement().contains(" "))
-                return String.valueOf(true);
+                return new Value(String.valueOf(true));
             else
-                return String.valueOf(false);
+                return new Value(String.valueOf(false));
         }
     },
     isempty {
@@ -428,12 +408,12 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // isempty v
             if (args[0].getElement().equals(""))
-                return String.valueOf(true);
+                return new Value(String.valueOf(true));
             else
-                return String.valueOf(false);
+                return new Value(String.valueOf(false));
 
         }
     },
@@ -444,7 +424,7 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             String s;
             if (args[2].getElement().equals("true")) {
                 s = args[1].getRunnableElement();
@@ -466,7 +446,7 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             // run [print add :a :b]
             // 执行的时候，接受到的参数是"print add :a :b"
             // 然后把它按空格分成数组，然后再把整个数组传递给read
@@ -486,7 +466,7 @@ public enum Operation implements OpInterface {
             /*
              * int j = NameSpace.jumpRun.pop(); if (j == srcExp.length) { int l; }
              */
-            return v.getElement();
+            return v;
         }
     },
     export {
@@ -496,10 +476,10 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
+        public Value calc(Value[] args, NameSpace n) {
             String name = args[0].getElement().substring(1);
             NameSpace.variables.put(name, new Value(n.localVariables.get(name).getElement()));
-            return n.localVariables.get(name).getElement();
+            return n.localVariables.get(name);
         }
     },
     RETURN {
@@ -509,8 +489,47 @@ public enum Operation implements OpInterface {
             return operandNum;
         }
 
-        public String calc(Value[] args, NameSpace n) {
-            return args[0].getElement();
+        public Value calc(Value[] args, NameSpace n) {
+            return args[0];
+        }
+    },
+    random {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            double d = Double.parseDouble(args[0].getElement());
+            double rd = Math.random() * d;
+            return new Value(String.valueOf(rd));
+        }
+    },
+    INT {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            double d = Double.parseDouble(args[0].getElement());
+            int i = (int) d;
+            return new Value(String.valueOf(i));
+        }
+    },
+    sqrt {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            double d = Double.parseDouble(args[0].getElement());
+            double r = Math.sqrt(d);
+            return new Value(String.valueOf(r));
         }
     };
 
@@ -528,7 +547,7 @@ public enum Operation implements OpInterface {
         return operandNum;
     }
 
-    public String calc(Value[] args, NameSpace n) {
-        return "";
+    public Value calc(Value[] args, NameSpace n) {
+        return new Value("");
     }
 }

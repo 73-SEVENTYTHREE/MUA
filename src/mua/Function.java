@@ -22,7 +22,7 @@ public class Function implements OpInterface {
         return oprandNum;
     }
 
-    public String calc(Value[] args, NameSpace n) {
+    public Value calc(Value[] args, NameSpace n) {
         String s = runList.getRunnableElement();
         s = s.substring(1);
         s = s.substring(0, s.length() - 1);
