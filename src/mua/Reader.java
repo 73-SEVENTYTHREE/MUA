@@ -124,6 +124,18 @@ public class Reader {
                 if (NameSpace.ops.contains(element)) {
                     operations.push(Operation.valueOf(element));
                     values.push(new Stack<Value>());
+                    if (element.equals("readlist")) {
+                        String lineList = in.nextLine();
+                        String[] eles = lineList.split("\\s+");
+                        ArrayList<Value> listElement = new ArrayList<>();
+                        for (String s : eles) {
+                            listElement.add(new Value(s));
+                        }
+                        Value v1 = new Value("");
+                        v1.type = Value.Type.list;
+                        v1.listElement = listElement;
+                        values.peek().push(v1);
+                    }
                 } else if (v.containsKey(element) && v.get(element).type == Value.Type.function) {
                     // 每个操作都要新建一个Function，有一个新的NameSpace
                     Function f = v.get(element).func;
@@ -138,11 +150,6 @@ public class Reader {
                 } else {
                     values.peek().push(new Value(element));
                 }
-            }
-
-            if (element.equals("readlist")) {
-                String lineList = in.nextLine();
-                
             }
 
             while (!operations.empty()) {

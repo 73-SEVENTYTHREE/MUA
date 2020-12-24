@@ -41,15 +41,28 @@ public class Value {
         if (type != Type.list && type != Type.function)
             return element;
         else {
-            String retStr = "";
+            return getListElement(true);
+        }
+    }
+
+    private String getListElement(boolean isOut) {
+        if (type != Type.list && type != Type.function)
+            return element;
+        else {
+            String retStr = "[";
             if (listElement.isEmpty()) {
                 return "";
             }
 
             for (Value v : listElement) {
-                retStr = retStr + v.getElement() + " ";
+                retStr = retStr + v.getListElement(false) + " ";
             }
             retStr = retStr.substring(0, retStr.length() - 1);
+            retStr = retStr + "]";
+            if (isOut) {
+                retStr = retStr.substring(1);
+                retStr = retStr.substring(0, retStr.length() - 1);
+            }
             return retStr;
         }
     }
@@ -70,7 +83,7 @@ public class Value {
         return list.toArray(new String[0]);
     }
 
-    public String getRunnableElement(){
+    public String getRunnableElement() {
         if (type != Type.list && type != Type.function)
             return element;
         else {

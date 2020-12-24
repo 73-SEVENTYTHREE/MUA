@@ -28,7 +28,7 @@ public enum Operation implements OpInterface {
 
             if (args[0].type == Value.Type.function) {
                 v.put(v1, args[0]);
-                return new Value(v2);
+                return args[0];
             } else {
                 // 如果v2不以引号开头，那么他一定是某个变量的名字，直接赋值就行了（相当于指针）
                 if (!v2.startsWith("\"")) {
@@ -395,10 +395,8 @@ public enum Operation implements OpInterface {
 
         public Value calc(Value[] args, NameSpace n) {
             // islist v
-            if (args[0].getElement().contains(" "))
-                return new Value(String.valueOf(true));
-            else
-                return new Value(String.valueOf(false));
+            //return new Value(String.valueOf(args[0].type == Value.Type.list));
+            return new Value("true");
         }
     },
     isempty {
@@ -530,6 +528,252 @@ public enum Operation implements OpInterface {
             double d = Double.parseDouble(args[0].getElement());
             double r = Math.sqrt(d);
             return new Value(String.valueOf(r));
+        }
+    },
+    readlist {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            return args[0];
+        }
+    },
+    word {
+        public int operandNum = 2;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            return new Value(args[1].getElement() + args[0].getElement());
+        }
+    },
+    sentence {
+        public int operandNum = 2;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            String s1 = args[1].getElement();
+            String s2 = args[0].getElement();
+            if (s1.startsWith("\"")) {
+                s1 = s1.substring(1);
+            }
+            if (s2.startsWith("\"")) {
+                s2 = s2.substring(1);
+            }
+            ArrayList<Value> l = new ArrayList<>();
+            if (args[1].type != Value.Type.list) {
+                l.add(new Value(s1));
+            } else {
+                for (Value v : args[1].listElement) {
+                    l.add(v);
+                }
+            }
+            if (args[0].type != Value.Type.list) {
+                l.add(new Value(s2));
+            } else {
+                for (Value v : args[0].listElement) {
+                    l.add(v);
+                }
+            }
+            Value v = new Value("");
+            v.listElement = l;
+            v.type = Value.Type.list;
+            return v;
+        }
+    },
+    list {
+        public int operandNum = 2;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            String s1 = args[1].getElement();
+            String s2 = args[0].getElement();
+            if (s1.startsWith("\"")) {
+                s1 = s1.substring(1);
+            }
+            if (s2.startsWith("\"")) {
+                s2 = s2.substring(1);
+            }
+            ArrayList<Value> l = new ArrayList<>();
+            if (args[1].type != Value.Type.list) {
+                l.add(new Value(s1));
+            } else {
+                l.add(args[1]);
+            }
+            if (args[0].type != Value.Type.list) {
+                l.add(new Value(s2));
+            } else {
+                l.add(args[0]);
+            }
+            Value v = new Value("");
+            v.listElement = l;
+            v.type = Value.Type.list;
+            return v;
+        }
+    },
+    join {
+        public int operandNum = 2;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            String s = args[0].getElement();
+            if (s.startsWith("\"")) {
+                s = s.substring(1);
+            }
+            Value v = new Value("");
+            v.listElement = args[1].listElement;
+            v.type = Value.Type.list;
+            if (args[0].type != Value.Type.list) {
+                v.listElement.add(new Value(s));
+            } else
+                v.listElement.add(args[0]);
+            return v;
+        }
+    },
+    first {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            if (args[0].type == Value.Type.list) {
+                return args[0].listElement.get(0);
+            } else {
+                String s = args[0].getElement();
+                if (s.startsWith("\"")) {
+                    s = s.substring(1);
+                }
+                String f = s.substring(0, 1);
+                return new Value(f);
+            }
+        }
+    },
+    last {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            if (args[0].type == Value.Type.list) {
+                return args[0].listElement.get(args[0].listElement.size() - 1);
+            } else {
+                String s = args[0].getElement();
+                if (s.startsWith("\"")) {
+                    s = s.substring(1);
+                }
+                String f = s.substring(s.length() - 1, s.length());
+                return new Value(f);
+            }
+        }
+    },
+    butlast {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            if (args[0].type == Value.Type.list) {
+                ArrayList<Value> l = new ArrayList<>();
+                for (int i = 0; i < args[0].listElement.size() - 1; ++i) {
+                    l.add(args[0].listElement.get(i));
+                }
+                Value v = new Value("");
+                v.listElement = l;
+                v.type = Value.Type.list;
+                return v;
+
+            } else {
+                String s = args[0].getElement();
+                if (s.startsWith("\"")) {
+                    s = s.substring(1);
+                }
+                String f = s.substring(0, s.length() - 1);
+                Value v = new Value("");
+                v.listElement.add(new Value(f));
+                v.type = Value.Type.list;
+                return v;
+            }
+        }
+    },
+    butfirst {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            if (args[0].type == Value.Type.list) {
+                ArrayList<Value> l = new ArrayList<>();
+                for (int i = 1; i < args[0].listElement.size(); ++i) {
+                    l.add(args[0].listElement.get(i));
+                }
+                Value v = new Value("");
+                v.listElement = l;
+                v.type = Value.Type.list;
+                return v;
+
+            } else {
+                String s = args[0].getElement();
+                if (s.startsWith("\"")) {
+                    s = s.substring(1);
+                }
+                String f = s.substring(1, s.length());
+                Value v = new Value("");
+                v.listElement.add(new Value(f));
+                v.type = Value.Type.list;
+                return v;
+            }
+        }
+    },
+    erall {
+        public int operandNum = 0;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            NameSpace.variables.clear();
+            return new Value("true");
+        }
+    },
+    poall {
+        public int operandNum = 0;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            ArrayList<Value> l = new ArrayList<>();
+            for (String s : NameSpace.variables.keySet()) {
+                l.add(new Value(s));
+            }
+            Value v = new Value("");
+            v.listElement = l;
+            v.type = Value.Type.list;
+            return v;
         }
     };
 

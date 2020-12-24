@@ -66,7 +66,8 @@ public class NameSpace {
             add("butlast");
             add("erall");
             add("poall");
-
+            add("save");
+            add("load");
         }
     };
 }
