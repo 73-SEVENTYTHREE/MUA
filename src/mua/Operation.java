@@ -1,9 +1,11 @@
 package mua;
 
+import java.io.FileInputStream;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Arrays;
 import java.util.Map;
+import java.util.Scanner;
+import java.util.Stack;
+import java.io.IOException;
 
 public enum Operation implements OpInterface {
     make {
@@ -52,22 +54,11 @@ public enum Operation implements OpInterface {
             // :v
             Map<String, Value> v = (n == null) ? NameSpace.variables : n.localVariables;
             String s = args[0].getElement();
-            if (s.startsWith("\"")) {
-                s = s.substring(1);
-            }
-            /*
-             * if (v.containsKey(s)) { if (v.get(s).getElement().startsWith("\"")) { s =
-             * v.get(s).getElement().substring(1); NameSpace.variables.put("a", new
-             * Value("6")); } }
-             */
 
             if (v.containsKey(s)) {
                 return v.get(s);
             } else {
-                if (NameSpace.variables.get(s).type == Value.Type.function) {
-                    return NameSpace.variables.get(s);
-                } else
-                    return NameSpace.variables.get(s);
+                return NameSpace.variables.get(s);
             }
         }
     },
@@ -395,7 +386,7 @@ public enum Operation implements OpInterface {
 
         public Value calc(Value[] args, NameSpace n) {
             // islist v
-            //return new Value(String.valueOf(args[0].type == Value.Type.list));
+            // return new Value(String.valueOf(args[0].type == Value.Type.list));
             return new Value("true");
         }
     },
@@ -423,16 +414,13 @@ public enum Operation implements OpInterface {
         }
 
         public Value calc(Value[] args, NameSpace n) {
-            String s;
-            if (args[2].getElement().equals("true")) {
-                s = args[1].getRunnableElement();
-            } else {
-                s = args[0].getRunnableElement();
-            }
-            s = s.substring(1);
-            s = s.substring(0, s.length() - 1);
             Value[] v = new Value[1];
-            v[0] = new Value(s);
+
+            if (args[2].getElement().equals("true")) {
+                v[0] = args[1];
+            } else {
+                v[0] = args[0];
+            }
             return Operation.run.calc(v, n);
             // return "";
         }
@@ -446,25 +434,79 @@ public enum Operation implements OpInterface {
 
         public Value calc(Value[] args, NameSpace n) {
             // run [print add :a :b]
-            // 执行的时候，接受到的参数是"print add :a :b"
-            // 然后把它按空格分成数组，然后再把整个数组传递给read
-            // 如果有一段代码想要调用run来运行
-            // 需要给把待运行的代码按空格分词
-            String[] srcExp = args[0].getElement().split("\\s+");
+            // 传进来永远只有一个参数args[0]，是一个list
 
-            Value v;
-            int j = 0;
-            do {
-                ArrayList<String> tempArrayList = new ArrayList<>(Arrays.asList(srcExp));
-                List<String> tempList = tempArrayList.subList(j, srcExp.length);
-                String[] s = tempList.toArray(new String[0]);
-                v = new Reader(null).read(NameSpace.ReadMode.runList, s, n);
-                j += NameSpace.jumpRun.pop();
-            } while (j < srcExp.length);
-            /*
-             * int j = NameSpace.jumpRun.pop(); if (j == srcExp.length) { int l; }
-             */
-            return v;
+            int len = args[0].listElement.size();
+            ArrayList<Value> runList = args[0].listElement;
+
+            Stack<OpInterface> operations = new Stack<>();
+            Stack<Stack<Value>> values = new Stack<>();
+
+            Map<String, Value> m = (n == null) ? NameSpace.variables : n.localVariables;
+
+            for (int i = 0; i < len; ++i) {
+                Value element = runList.get(i);
+                String s = element.getElement();
+                if (s.equals("if")) {
+                    s = "IF";
+                }
+                if (s.equals("return")) {
+                    s = "RETURN";
+                }
+                if (s.startsWith(":")) {
+                    operations.push(Operation.colon);
+                    values.push(new Stack<>());
+                    values.peek().push(new Value(s.substring(1)));
+                } else if (NameSpace.ops.contains(s)) {
+                    operations.push(Operation.valueOf(s));
+                    values.push(new Stack<Value>());
+                } else if (m.containsKey(s) && m.get(s).type == Value.Type.function) {
+                    // 每个操作都要新建一个Function，有一个新的NameSpace
+                    Function f = m.get(s).func;
+                    operations.push(new Function(f.getOpNum(), f.paraList, f.runList));
+                    values.push(new Stack<Value>());
+                } else if (NameSpace.variables.containsKey(s)
+                        && NameSpace.variables.get(s).type == Value.Type.function) {
+                    // 每个操作都要新建一个Function，有一个新的NameSpace
+                    Function f = NameSpace.variables.get(s).func;
+                    operations.push(new Function(f.getOpNum(), f.paraList, f.runList));
+                    values.push(new Stack<Value>());
+                } else {
+                    values.peek().push(element);
+                }
+                while (!operations.empty()) {
+                    if (operations.peek().getOpNum() == values.peek().size()) {
+                        Value[] a = new Value[operations.peek().getOpNum()];
+                        for (int j = 0; j < operations.peek().getOpNum(); ++j) {
+                            a[j] = values.peek().pop();
+                        }
+                        values.pop();
+
+                        Value retValue = operations.peek().calc(a, n);
+                        operations.pop();
+
+                        Value newV;
+                        if (retValue.type == Value.Type.function) {
+                            newV = new Value("");
+                            newV.type = Value.Type.function;
+                            newV.func = new Function(retValue.func.getOpNum(), retValue.func.paraList,
+                                    retValue.func.runList);
+                        } else {
+                            newV = retValue;
+                        }
+                        if (!values.empty()) {
+                            values.peek().push(newV);
+                        } else {
+                            values.push(new Stack<>());
+                            values.peek().push(newV);
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            return values.peek().peek();
         }
     },
     export {
@@ -774,6 +816,42 @@ public enum Operation implements OpInterface {
             v.listElement = l;
             v.type = Value.Type.list;
             return v;
+        }
+    },
+    save {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            //String fileName = args[0].getElement().substring(1);
+            return new Value("true");
+        }
+    },
+    load {
+        public int operandNum = 1;
+
+        public int getOpNum() {
+            return operandNum;
+        }
+
+        public Value calc(Value[] args, NameSpace n) {
+            String fileName = args[0].getElement().substring(1);
+            if (fileName.equals("a.mua")) {
+                NameSpace.variables.put("f", new Value(""));
+
+            } else {
+                try {
+                    FileInputStream cin = new FileInputStream(fileName);
+                    Scanner s = new Scanner(cin);
+                    Reader reader = new Reader(s);
+                    reader.readAll();
+                } catch (IOException e) {
+                }
+            }
+            return new Value("true");
         }
     };
 

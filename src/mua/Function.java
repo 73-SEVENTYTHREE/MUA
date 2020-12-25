@@ -23,11 +23,8 @@ public class Function implements OpInterface {
     }
 
     public Value calc(Value[] args, NameSpace n) {
-        String s = runList.getRunnableElement();
-        s = s.substring(1);
-        s = s.substring(0, s.length() - 1);
         Value[] a = new Value[1];
-        a[0] = new Value(s);
+        a[0] = runList;
 
         for (int i = 0; i < args.length; ++i) {
             local.localVariables.put(paraList.listElement.get(i).getElement(), args[args.length - i - 1]);

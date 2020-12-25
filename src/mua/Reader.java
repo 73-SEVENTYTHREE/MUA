@@ -170,7 +170,7 @@ public class Reader {
                         newV.func = new Function(retValue.func.getOpNum(), retValue.func.paraList,
                                 retValue.func.runList);
                     } else {
-                        newV = new Value(retValue.getElement());
+                        newV = retValue;
                     }
                     if (!values.empty()) {
                         values.peek().push(newV);
